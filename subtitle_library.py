@@ -5,6 +5,7 @@ from tkinter import filedialog, Tk
 from copy import deepcopy
 from PIL import ImageFont
 from matplotlib import font_manager
+import datetime
 
 import logging
 
@@ -34,7 +35,12 @@ def main():
     # root.filename = filedialog.asksaveasfilename(title = "Select file",
     #                 filetypes = (("jpeg files","*.ass"),("all files","*.*")))
 
-    savedfile = '/home/guille/Bureau/outputfilee.ass'
+    asssub1.sections['Aegisub Project Garbage']['Audio File'] = '/home/guille/Bureau/CS50/CS50.mp4'
+    asssub1.sections['Aegisub Project Garbage']['Video File'] = '/home/guille/Bureau/CS50/CS50.mp4'
+
+    time = datetime.datetime.now()
+    savedfile = f'/home/guille/Bureau/Output {time.hour}{time.minute}{time.second}.ass'
+
     if not asssub1.save(savedfile):
         print(f'didnt save')
     else:
