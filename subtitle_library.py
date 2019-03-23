@@ -220,24 +220,37 @@ class SubFile:
             for line in self.lines[first_line-1:last_line]:
                 line.End += mstoshift
 
-    def align_dialog(self, prefixes=('-', '–', '—'),
-                     style_suffix=' - alignedL'):
+    def align_dialog(self, video_width=0, video_height=0,
+                     prefixes=('-', '–', '—'), style_suffix=' - alignedL'):
         ''' Takes the subtitles whose lines all start with -, –, —,
             and aligns them to the left, using ASS styles.
 
-            ARGS: 
+            ARGS:
+                video_width, video_height: required, but will try to get them
+                    from a .ass file's [Script Info] if not specified.
                 prefixes: list, tuple of expressions that introduce dialogue.
-                          defaut is ('-', '–', '—').
+                    defaut is ('-', '–', '—').
                 style_suffix: this is added to the current style name
-                              to create the new, left aligned style.
-                              default is ' - alignedL'.
-                              which would give 'Style - alignedL'.
+                    to create the new, left aligned style.
+                    By default it would create 'Stylename - alignedL'.
+
+            NOTE: Requires a font, which is taken from the .ass file.
+            If no font is found it uses the default (Arial, 20p)
 
             NOTE: Does not work if saved as .srt file
             since they don't support positioning or alignment.
 
-            NOTE: If {stylename} + ' - alignedL' already exists
+            NOTE: If '{style} - alignedL' already exists as a style
             it will assume it's correct and use it. '''
+
+        try:
+            if not video_width:
+                video_width = int(self.sections['Script Info']['PlayResX'])
+            if not video_height:
+                video_height = int(self.sections['Script Info']['PlayResY'])
+        except Exception:
+            raise Exception("Could not extract video resolution from subtitle file."
+                            " Are you sure it's an .ass file linked to a video?")
 
         for line in self.lines:
             if '\\N' in line.Text:
@@ -247,11 +260,6 @@ class SubFile:
                     if not newline.startswith(prefixes):
                         break
                 else:
-
-                    # We need the video resolution to position the text
-
-                    videow = int(self.sections['Script Info']['PlayResX'])
-                    videoh = int(self.sections['Script Info']['PlayResY'])
 
                     for style in self.styles:
                         if style.Name == line.Style:
@@ -283,34 +291,34 @@ class SubFile:
                                     style_to_use.Alignment = '1'
 
                     # Info needed to calculate width of line
+                    # '{\pos}' overrides MarginL and MarginR
+                    # so we dont have to edit or import them
 
                     Alignment = int(style_to_use.Alignment)
                     Fontname = style_to_use.Fontname
                     Fontsize = int(style_to_use.Fontsize)
                     Spacing = int(style_to_use.Spacing)
-                    MarginV = int(style_to_use.MarginV)
                     Bold = style_to_use.Bold
                     Italic = style_to_use.Italic
 
-                    # 'pos' overrides MarginL, MarginR and MarginV,
-                    # so we dont have to edit or import them
-
                     # MarginV from line overrides the style's MarginV
-                    # But if the line's MarginV is 0, we take the style's
+                    # But if the line's MarginV is 0, we use the style's
 
-                    if line.MarginV != '0':
+                    if line.MarginV == '0':
+                        MarginV = int(style_to_use.MarginV)
+                    else:
                         MarginV = line.MarginV
 
                     if Alignment == 7:
                         y = MarginV
                     elif Alignment == 4:
-                        y = videoh / 2
+                        y = video_height / 2
                     else:
-                        y = videoh - MarginV
+                        y = video_height - MarginV
 
                     # Check for the widest line
                     # and use that as a basis for centering the subtitle
-                    # Have a try except for not getting the font #TODO
+
                     font = get_font(font=Fontname, bold=Bold, italic=Italic)
                     widths = []
 
@@ -325,7 +333,7 @@ class SubFile:
                     logging.info(f"Picked {biggest_width}"
                     f"as the longest of {widths}.")
 
-                    x = videow/2 - biggest_width/2
+                    x = video_width/2 - biggest_width/2
 
                     outputline = f'{{\\pos({x},{y})}}'
 
@@ -462,6 +470,8 @@ class SrtSubFile(SubFile):
                     Start=formats.Srt.get_time(match.group(1)),
                     End=formats.Srt.get_time(match.group(2)),
                     Text=text))
+                # Gives a default style to avoid problems
+                self.styles.append(Style())
 
 
 class Style:
