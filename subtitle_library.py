@@ -13,7 +13,8 @@ import logging
 # 
 # Maybe some cool effects for subtitle styles (turn them 3D or something cool)
 # 
-# Correct errors in text?
+# Correct errors in text? Correct for punctuation errors and for language errors with a dictionary?
+# Then show those errors in terminal? Maybe
 # 
 # Add SSA files? easy but not needed really
 
@@ -29,14 +30,15 @@ def main():
     asssub1.align_dialog()
     # asssub1.single_lines_to_top()
 
-    asssub1.shift(300, which_time='both', first_line=10)
+    # asssub1.shift(1, which_time='both')
+    asssub1.separate(170)
 
     # root = Tk()
     # root.filename = filedialog.asksaveasfilename(title = "Select file",
     #                 filetypes = (("jpeg files","*.ass"),("all files","*.*")))
 
-    asssub1.sections['Aegisub Project Garbage']['Audio File'] = '/home/guille/Bureau/CS50/CS50.mp4'
-    asssub1.sections['Aegisub Project Garbage']['Video File'] = '/home/guille/Bureau/CS50/CS50.mp4'
+    # asssub1.sections['Aegisub Project Garbage']['Audio File'] = '/home/guille/Bureau/CS50/CS50.mp4'
+    # asssub1.sections['Aegisub Project Garbage']['Video File'] = '/home/guille/Bureau/CS50/CS50.mp4'
 
     time = datetime.datetime.now()
     savedfile = f'/home/guille/Bureau/Output {time.hour}{time.minute}{time.second}.ass'
@@ -162,24 +164,18 @@ class SubFile:
 
         self.lines.pop(line_number)
 
-    def separate(self, mstosplit, split_type='move_second'):
+    def separate(self, mstosplit=170, split_type='move_second'):
 
-        # If subtitles are at a distance of less than 'mstosplit',
-        # it separates them by 'mstosplit' miliseconds
+        ''' If subtitles are at a distance of less than 'mstosplit',
+            they get separated by 'mstosplit' miliseconds.
+            Default is 170ms (1/6 of a second, universally recommended amount).'''
 
-        # This is just so the first sub doesn't get moved:
-        # end = -self.lines[0].Start-mstosplit
-        # end = self.lines[0].End
+        if split_type == 'move_second':
 
-        if split_type == "move_second":
+            for prevline, line in zip(self.lines, self.lines[1:]):
 
-            for line in self.lines:
-
-                start = line.Start
-                if start-end < mstosplit:
-                    line.Start = end+mstosplit
-
-                end = line.End
+                if line.Start-prevline.End < mstosplit:
+                    line.Start = prevline.End+mstosplit
 
         if split_type == "move_first":
 
@@ -248,9 +244,12 @@ class SubFile:
                 video_width = int(self.sections['Script Info']['PlayResX'])
             if not video_height:
                 video_height = int(self.sections['Script Info']['PlayResY'])
+            # TODO change to
+            # video_width = video_width or int(self.sections['Script Info']['PlayResX'])
+            # cause it looks cooler
         except Exception:
             raise Exception("Could not extract video resolution from subtitle file."
-                            " Are you sure it's an .ass file linked to a video?")
+                            " Are you sure it's a .ass file linked to a video?")
 
         for line in self.lines:
             if '\\N' in line.Text:
@@ -406,8 +405,8 @@ class AssSubFile(SubFile):
                 if line.lstrip().startswith(cprefixes):
                     # Ignore commented lines
                     continue
-
-                q = section_pattern.match(line)         # Check if the line is a section
+                # Check if the line is a section
+                q = section_pattern.match(line)
 
                 if q:
                     sectname = q.group(1)               # If 2 sections are called the same
