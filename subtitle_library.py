@@ -1,12 +1,12 @@
 import formats
 import re
 from pathlib import Path
-from tkinter import filedialog, Tk
 from copy import deepcopy
 from PIL import ImageFont
 from matplotlib import font_manager
-import datetime
 
+from tkinter import filedialog, Tk
+import datetime
 import logging
 
 # Method ideas:
@@ -24,26 +24,27 @@ def main():
 
     logging.basicConfig(filename='debug.log', level=logging.INFO)
 
-    asssub1 = load_sub(filedialog.askopenfilename(defaultextension=".srt"))
+    file = load_sub(filedialog.askopenfilename())
 
-    # asssub1.sections['Script Info']['Title'] = 'Fuckdick'
-    asssub1.align_dialog()
-    # asssub1.single_lines_to_top()
+    # file.sections['Script Info']['Title'] = 'Fuckdick'
+    file.align_dialog()
+    file.separate(170)
+    # file.single_lines_to_top()
 
-    # asssub1.shift(1, which_time='both')
-    asssub1.separate(170)
+    # file.shift(1, which_time='both')
+    
 
     # root = Tk()
-    # root.filename = filedialog.asksaveasfilename(title = "Select file",
-    #                 filetypes = (("jpeg files","*.ass"),("all files","*.*")))
+    # root.filename = filedialog.asksaveasfilename(title = 'Select file',
+    #                 filetypes = (('jpeg files','*.ass'),('all files','*.*')))
 
-    # asssub1.sections['Aegisub Project Garbage']['Audio File'] = '/home/guille/Bureau/CS50/CS50.mp4'
-    # asssub1.sections['Aegisub Project Garbage']['Video File'] = '/home/guille/Bureau/CS50/CS50.mp4'
+    # file.sections['Aegisub Project Garbage']['Audio File'] = '/home/guille/Bureau/CS50/CS50.mp4'
+    # file.sections['Aegisub Project Garbage']['Video File'] = '/home/guille/Bureau/CS50/CS50.mp4'
 
     time = datetime.datetime.now()
     savedfile = f'/home/guille/Bureau/Output {time.hour}{time.minute}{time.second}.ass'
 
-    if not asssub1.save(savedfile):
+    if not file.save(savedfile):
         print(f'didnt save')
     else:
         print(f'Saved to {savedfile}')
@@ -60,30 +61,30 @@ def load_sub(path):
     if subtitle_file:
         subtitle_file.interpret(path)
         return subtitle_file
+    
+    print('Format not recognized. Could not open file.')
 
 
 def get_font(font, bold='0', italic='0'):
 
-        if bold == '0':
-            weight = 400    # Not bold
-        else:
-            weight = 700    # Bold
+    if bold == '0':
+        weight = 400
+    else:
+        weight = 700
 
-        if italic == '0':
-            style = 'normal'
-        else:
-            style = 'italic'
+    if italic == '0':
+        style = 'normal'
+    else:
+        style = 'italic'
 
-        properties = font_manager.FontProperties(
-            family=font, style=style, weight=weight)
+    properties = font_manager.FontProperties(family=font, style=style, weight=weight)
+    fontsearch = font_manager.findfont(properties)
 
-        fontsearch = font_manager.findfont(properties)
+    # LOGS HERE
+    logging.info(f'Searching for font {font}, of style {style} and weight {weight}.')
+    logging.info(f'Using font {fontsearch}.')
 
-        # LOGS HERE
-        logging.info(f"Searching for font '{font}', of style {style} and weight {weight}.")
-        logging.info(f"Using font {fontsearch}.")
-
-        return fontsearch
+    return fontsearch
 
 
 def check_text_width(text, font, size, spacing=0):
@@ -94,7 +95,7 @@ def check_text_width(text, font, size, spacing=0):
 
     width = font_obj.getsize(text)[0]
 
-    logging.info(f"Width: {width}. Text: {text}.")
+    logging.info(f'Width: {width}. Text: {text}.')
 
     return width+spacing
 
@@ -102,23 +103,21 @@ def check_text_width(text, font, size, spacing=0):
 class SubFile:
 
     def __init__(self):
-
+        # sections contains info about the file, used in .ass files
         self.sections = dict()
         self.styles = []
         self.lines = []
 
     def __str__(self):
         return (
-                f"Information on subtitle file:\n"
-                f"Individual subtitles: {len(self.lines)}\n"
-                f"Styles: {len(self.styles)}\n"
-                f"First line: {self.lines[0].Text}\n"
-                f"Last line: {self.lines[-1].Text}"
+                f'Information on subtitle file:\n'
+                f'Individual subtitles: {len(self.lines)}\n'
+                f'Styles: {len(self.styles)}\n'
+                f'First line: {self.lines[0].Text}\n'
+                f'Last line: {self.lines[-1].Text}'
                 )
 
     def save(self, path):
-
-        # Writes the subtitles into the file 'path'
 
         if Path(path).suffix == '.ass':
             with open(path, 'w') as f:
@@ -128,8 +127,8 @@ class SubFile:
                     f.write(f'[{name}]\n')
                     for key, value in section.items():
                         f.write(f'{key}: {value}\n')
-                    f.write('\n')
                     # Empty line at the end of each section
+                    f.write('\n')
 
                 # Write the styles
                 f.write(formats.Ass.style_intro)
@@ -159,10 +158,9 @@ class SubFile:
             return 1
 
     def removeline(self, line_number):
-
-        # Simple method to remove a subtitle
-
-        self.lines.pop(line_number)
+        ''' Simple method to remove a line.
+            First line would be 1.'''
+        self.lines.pop(line_number-1)
 
     def separate(self, mstosplit=170, split_type='move_second'):
 
@@ -177,14 +175,14 @@ class SubFile:
                 if line.Start-prevline.End < mstosplit:
                     line.Start = prevline.End+mstosplit
 
-        if split_type == "move_first":
+        if split_type == 'move_first':
 
             for prevline, line in zip(self.lines, self.lines[1:]):
 
                 if line.Start-prevline.End < mstosplit:
                     prevline.End = line.Start-mstosplit
 
-        if split_type == "split":
+        if split_type == 'split':
 
             for prevline, line in zip(self.lines, self.lines[1:]):
 
@@ -236,20 +234,16 @@ class SubFile:
             NOTE: Does not work if saved as .srt file
             since they don't support positioning or alignment.
 
-            NOTE: If '{style} - alignedL' already exists as a style
-            it will assume it's correct and use it. '''
+            NOTE: If '{style} - alignedL' already exists as a style it will use it.
+            '''
 
         try:
-            if not video_width:
-                video_width = int(self.sections['Script Info']['PlayResX'])
-            if not video_height:
-                video_height = int(self.sections['Script Info']['PlayResY'])
-            # TODO change to
-            # video_width = video_width or int(self.sections['Script Info']['PlayResX'])
-            # cause it looks cooler
+            video_width = video_width or int(self.sections['Script Info']['PlayResX'])
+            video_height = video_height or int(self.sections['Script Info']['PlayResY'])
+
         except Exception:
-            raise Exception("Could not extract video resolution from subtitle file."
-                            " Are you sure it's a .ass file linked to a video?")
+            raise Exception('Could not extract video resolution from subtitle file.\n'
+                            'Are you sure it\'s a .ass file linked to a video?')
 
         for line in self.lines:
             if '\\N' in line.Text:
@@ -264,14 +258,13 @@ class SubFile:
                         if style.Name == line.Style:
 
                             # Checks if style already exists
-
                             for style_already_exists in self.styles:
                                 if style_already_exists.Name == f'{line.Style}{style_suffix}':
                                     style_to_use = style_already_exists
                                     break
 
-                            else:   # Creates new style
-
+                            else:
+                                # Creates new style
                                 style_to_use = deepcopy(style)
                                 self.styles.append(style_to_use)
                                 style_to_use.Name = f'{line.Style}{style_suffix}'
@@ -329,8 +322,8 @@ class SubFile:
                     widths.sort(reverse=True)
                     biggest_width = widths[0]
 
-                    logging.info(f"Picked {biggest_width}"
-                    f"as the longest of {widths}.")
+                    logging.info(f'Picked {biggest_width}'
+                    f'as the longest of {widths}.')
 
                     x = video_width/2 - biggest_width/2
 
@@ -339,7 +332,7 @@ class SubFile:
                     # Rewrite the text
 
                     for newline in newtext:
-                        outputline += f"{newline}\\N"
+                        outputline += f'{newline}\\N'
 
                     line.Text = outputline[:-2]     # Removes the last \N
                     line.Style = style_to_use.Name
@@ -537,11 +530,11 @@ class SubLine:
     def line_to_ass(self):
         # pylint: disable=maybe-no-member
         return (
-            f"{self.Type}: {self.Layer},"
-            f"{formats.Ass.turn_to_time(self.Start)},"
-            f"{formats.Ass.turn_to_time(self.End)},"
-            f"{self.Style},{self.Name},{self.MarginL},{self.MarginR},"
-            f"{self.MarginV},{self.Effect},{self.Text}\n"
+            f'{self.Type}: {self.Layer},'
+            f'{formats.Ass.turn_to_time(self.Start)},'
+            f'{formats.Ass.turn_to_time(self.End)},'
+            f'{self.Style},{self.Name},{self.MarginL},{self.MarginR},'
+            f'{self.MarginV},{self.Effect},{self.Text}\n'
         )
 
     def line_to_srt(self, i):
@@ -555,11 +548,11 @@ class SubLine:
         text = formats.Ass.ass_colors.sub(formats.Ass.colors_to_srt, text)
 
         return (
-            f"{i}\n"
-            f"{formats.Srt.turn_to_time(self.Start)}"
-            f" --> "
-            f"{formats.Srt.turn_to_time(self.End)}\n" +
-            "{text}\n\n".format(text=text)
+            f'{i}\n'
+            f'{formats.Srt.turn_to_time(self.Start)}'
+            f' --> '
+            f'{formats.Srt.turn_to_time(self.End)}\n' +
+            '{text}\n\n'.format(text=text)
         )
 
     def shift(self, amount_start, amount_end):
