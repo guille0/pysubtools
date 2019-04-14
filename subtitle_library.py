@@ -9,24 +9,13 @@ from tkinter import filedialog, Tk
 import datetime
 import logging
 
-# Method ideas:
-# 
-# Maybe some cool effects for subtitle styles (turn them 3D or something cool)
-# 
-# Correct errors in text? Correct for punctuation errors and for language errors with a dictionary?
-# Then show those errors in terminal? Maybe
-# 
-# Add SSA files? easy but not needed really
-
-# TODO Add trys and excepts to check for common errors
-
 def main():
 
     logging.basicConfig(filename='debug.log', level=logging.INFO)
 
     file = load_sub(filedialog.askopenfilename())
 
-    # file.sections['Script Info']['Title'] = 'Fuckdick'
+    # file.sections['Script Info']['Title'] = 'Changing the title'
     file.align_dialog()
     file.separate(170)
     # file.single_lines_to_top()
