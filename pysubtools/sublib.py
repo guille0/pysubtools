@@ -450,7 +450,7 @@ class Style:
     def to_line(self):  # turns the style into a .ass line
         # Gets self's attributes, if they are actual style variables
         get_attrs = (getattr(self, item) for item in self.style_df.keys())
-        
+
         return f'Style: {",".join(get_attrs)}\n'
 
 
