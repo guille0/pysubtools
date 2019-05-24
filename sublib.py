@@ -1,45 +1,13 @@
-import formats
-import re
 from pathlib import Path
 from copy import deepcopy
 from PIL import ImageFont
 from matplotlib import font_manager
-
-from tkinter import filedialog, Tk
-import datetime
-import logging
-
-def main():
-
-    logging.basicConfig(filename='debug.log', level=logging.INFO)
-
-    file = load_sub(filedialog.askopenfilename())
-
-    # file.sections['Script Info']['Title'] = 'Changing the title'
-    file.align_dialog()
-    file.separate(170)
-    # file.single_lines_to_top()
-
-    # file.shift(1, which_time='both')
-    
-
-    # root = Tk()
-    # root.filename = filedialog.asksaveasfilename(title = 'Select file',
-    #                 filetypes = (('jpeg files','*.ass'),('all files','*.*')))
-
-    # file.sections['Aegisub Project Garbage']['Audio File'] = '/home/guille/Bureau/CS50/CS50.mp4'
-    # file.sections['Aegisub Project Garbage']['Video File'] = '/home/guille/Bureau/CS50/CS50.mp4'
-
-    time = datetime.datetime.now()
-    savedfile = f'/home/guille/Bureau/Output {time.hour}{time.minute}{time.second}.ass'
-
-    if not file.save(savedfile):
-        print(f'didnt save')
-    else:
-        print(f'Saved to {savedfile}')
+from .formats import Srt, Ass
 
 
 def load_sub(path):
+
+    subtitle_file = None
 
     if Path(path).suffix == '.ass':
         subtitle_file = AssSubFile()
@@ -47,11 +15,11 @@ def load_sub(path):
     if Path(path).suffix == '.srt':
         subtitle_file = SrtSubFile()
 
-    if subtitle_file:
+    if subtitle_file is not None:
         subtitle_file.interpret(path)
         return subtitle_file
-    
-    print('Format not recognized. Could not open file.')
+
+    print(f'Could not load file. Can\'t understand format {Path(path.suffix)}.')
 
 
 def get_font(font, bold='0', italic='0'):
@@ -69,10 +37,6 @@ def get_font(font, bold='0', italic='0'):
     properties = font_manager.FontProperties(family=font, style=style, weight=weight)
     fontsearch = font_manager.findfont(properties)
 
-    # LOGS HERE
-    logging.info(f'Searching for font {font}, of style {style} and weight {weight}.')
-    logging.info(f'Using font {fontsearch}.')
-
     return fontsearch
 
 
@@ -84,15 +48,13 @@ def check_text_width(text, font, size, spacing=0):
 
     width = font_obj.getsize(text)[0]
 
-    logging.info(f'Width: {width}. Text: {text}.')
-
     return width+spacing
 
 
 class SubFile:
 
     def __init__(self):
-        # sections contains info about the file, used in .ass files
+        # self.sections contains info about the file, used in .ass files
         self.sections = dict()
         self.styles = []
         self.lines = []
@@ -105,6 +67,12 @@ class SubFile:
                 f'First line: {self.lines[0].Text}\n'
                 f'Last line: {self.lines[-1].Text}'
                 )
+
+    def __len__(self):
+        return len(self.lines)
+
+    def __getitem__(self, i):
+        return self.lines[i]
 
     def save(self, path):
 
@@ -120,7 +88,7 @@ class SubFile:
                     f.write('\n')
 
                 # Write the styles
-                f.write(formats.Ass.style_intro)
+                f.write(Ass.style_intro)
 
                 if len(self.styles) == 0:
                     # Adds default style if there's none
@@ -130,7 +98,7 @@ class SubFile:
                     f.write(st.to_line())
 
                 # Write the subtitles
-                f.write(formats.Ass.sub_intro)
+                f.write(Ass.sub_intro)
 
                 for line in self.lines:
                     f.write(line.line_to_ass())
@@ -146,13 +114,12 @@ class SubFile:
 
             return 1
 
-    def removeline(self, line_number):
+    def remove_line(self, line_number):
         ''' Simple method to remove a line.
             First line would be 1.'''
         self.lines.pop(line_number-1)
 
     def separate(self, mstosplit=170, split_type='move_second'):
-
         ''' If subtitles are at a distance of less than 'mstosplit',
             they get separated by 'mstosplit' miliseconds.
             Default is 170ms (1/6 of a second, universally recommended amount).'''
@@ -311,9 +278,6 @@ class SubFile:
                     widths.sort(reverse=True)
                     biggest_width = widths[0]
 
-                    logging.info(f'Picked {biggest_width}'
-                    f'as the longest of {widths}.')
-
                     x = video_width/2 - biggest_width/2
 
                     outputline = f'{{\\pos({x},{y})}}'
@@ -340,7 +304,7 @@ class SubFile:
         for line in self.lines:
             if '\\N' not in line.Text:
                 line.Text += '\\N '
-                
+
     def remove_style(self, style, replacement='Default'):
         ''' Removes style and applies 'replacement'
             to the lines that used it.
@@ -372,11 +336,11 @@ class AssSubFile(SubFile):
     def interpret(self, path, enc='utf-8-sig'):
 
         # Particularities in .ass files:
-        line_pattern = formats.Ass.line_pattern
-        style_pattern = formats.Ass.style_pattern
-        section_pattern = formats.Ass.section_pattern
-        key_pattern = formats.Ass.key_pattern
-        cprefixes = formats.Ass.comment_prefixes
+        line_pattern = Ass.line_pattern
+        style_pattern = Ass.style_pattern
+        section_pattern = Ass.section_pattern
+        key_pattern = Ass.key_pattern
+        cprefixes = Ass.comment_prefixes
 
         sectname = 'Script Info'    # Defaults to [Script Info]
 
@@ -391,7 +355,8 @@ class AssSubFile(SubFile):
                 q = section_pattern.match(line)
 
                 if q:
-                    sectname = q.group(1)               # If 2 sections are called the same
+                    sectname = q.group(1)
+                    # If 2 sections are called the same
                     # it only keeps the 2nd one
                     if sectname != 'Events' and sectname != 'V4+ Styles':
                         self.sections[sectname] = dict()
@@ -402,8 +367,8 @@ class AssSubFile(SubFile):
                     sl = line_pattern.search(line)      # (ignores Format line)
                     if sl:
                         li = list(sl.groups())
-                        li[2] = formats.Ass.get_time(li[2])
-                        li[3] = formats.Ass.get_time(li[3])
+                        li[2] = Ass.get_time(li[2])
+                        li[3] = Ass.get_time(li[3])
                         self.lines.append(SubLine(li))
 
                 elif sectname == 'V4+ Styles':          # Interpret line as a style
@@ -427,10 +392,10 @@ class SrtSubFile(SubFile):
 
         with open(path) as f:
 
-            replacedict = formats.Srt.tags_to_ass
+            replacedict = Srt.tags_to_ass
             # To replace .srt tags into .ass formatting
 
-            line_pattern = formats.Srt.line_pattern
+            line_pattern = Srt.line_pattern
             # Gets the pattern of .srt files
 
             whole_file = f.read()
@@ -441,15 +406,15 @@ class SrtSubFile(SubFile):
                     text = match.group(3).replace(key.lower(), value)
                     # .lower() just in case there's <B> in caps or w/e
 
-                text = formats.Srt.srt_colors.sub(
-                    formats.Srt.colors_to_ass, text)
+                text = Srt.srt_colors.sub(
+                    Srt.colors_to_ass, text)
                 # Turns colors to ass formatting
                 # <font color=#123456> to {\c&H563412}
                 # also changes RGB (srt) to BGR (ass)
 
                 self.lines.append(SubLine(
-                    Start=formats.Srt.get_time(match.group(1)),
-                    End=formats.Srt.get_time(match.group(2)),
+                    Start=Srt.get_time(match.group(1)),
+                    End=Srt.get_time(match.group(2)),
                     Text=text))
                 # Gives a default style to avoid problems
                 self.styles.append(Style())
@@ -457,7 +422,7 @@ class SrtSubFile(SubFile):
 
 class Style:
 
-    style_df = formats.Ass.style_df     # Dictionary with default values
+    style_df = Ass.style_df     # Dictionary with default values
 
     # Style takes either a list of variables (23 or less).
     # Or takes keywords for variables.
@@ -482,7 +447,6 @@ class Style:
         for arg, val in attributes.items():
             setattr(self, arg, val)
 
-
     def to_line(self):  # turns the style into a .ass line
         # Gets self's attributes, if they are actual style variables
         get_attrs = (getattr(self, item) for item in self.style_df.keys())
@@ -496,7 +460,7 @@ class SubLine:
 
     Times (Start and End) are saved in ms '''
 
-    sub_df = formats.Ass.sub_df
+    sub_df = Ass.sub_df
 
     def __init__(self, sub_as_list='', **kwargs):
 
@@ -509,9 +473,7 @@ class SubLine:
 
         else:
             # Overwrites defaults with whatever came from kwargs
-            attributes.update( (k, kwargs[k])
-            for k in attributes.keys() & kwargs.keys())     
-            
+            attributes.update((k, kwargs[k]) for k in attributes.keys() & kwargs.keys())
 
         for arg, val in attributes.items():
             setattr(self, arg, val)     # and sets all of the values as object attributes
@@ -520,8 +482,8 @@ class SubLine:
         # pylint: disable=maybe-no-member
         return (
             f'{self.Type}: {self.Layer},'
-            f'{formats.Ass.turn_to_time(self.Start)},'
-            f'{formats.Ass.turn_to_time(self.End)},'
+            f'{Ass.turn_to_time(self.Start)},'
+            f'{Ass.turn_to_time(self.End)},'
             f'{self.Style},{self.Name},{self.MarginL},{self.MarginR},'
             f'{self.MarginV},{self.Effect},{self.Text}\n'
         )
@@ -529,18 +491,18 @@ class SubLine:
     def line_to_srt(self, i):
         # pylint: disable=maybe-no-member
 
-        replacedict = formats.Ass.tags_to_srt
+        replacedict = Ass.tags_to_srt
 
         for key, value in replacedict.items():
             text = self.Text.replace(key, value)
 
-        text = formats.Ass.ass_colors.sub(formats.Ass.colors_to_srt, text)
+        text = Ass.ass_colors.sub(Ass.colors_to_srt, text)
 
         return (
             f'{i}\n'
-            f'{formats.Srt.turn_to_time(self.Start)}'
+            f'{Srt.turn_to_time(self.Start)}'
             f' --> '
-            f'{formats.Srt.turn_to_time(self.End)}\n' +
+            f'{Srt.turn_to_time(self.End)}\n' +
             '{text}\n\n'.format(text=text)
         )
 
@@ -551,4 +513,4 @@ class SubLine:
 
 
 if __name__ == '__main__':
-    main()
+    print('Don\'t run this! Use test.py if you want to test out the library.')
