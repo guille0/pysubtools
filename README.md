@@ -12,7 +12,7 @@ f = pysubtools.load_sub('example.ass')
 
 # Look for subtitles containing dialogue (where all the lines start with 'prefixes')
 # and make the text left-aligned and centered (only works for .ass files)
-    f.align_dialog(self, video_width=0, video_height=0, prefixes=('-', '–', '—'), style_suffix=' - alignedL')
+    f.align_dialog(video_width=0, video_height=0, prefixes=('-', '–', '—'), style_suffix=' - alignedL')
 
 
 # Look for subtitles where there is only one line and raise it slightly,
