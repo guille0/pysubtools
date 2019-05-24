@@ -6,9 +6,13 @@ Library and tools for editing subtitles including left-aligning dialogue and mov
 import pysubtools
 
 f = pysubtools.load_sub('example.ass')
+```
 
-# Make sure there is at least 170 ms (recommended) of separation between subtitles
+_Make sure there is at least 170 ms (recommended) of separation between subtitles_
+
+```
 f.separate(mstosplit=170, split_type='move_second')
+```
 
 # Look for subtitles containing dialogue (where all the lines start with 'prefixes')
 # and make the text left-aligned and centered (only works for .ass files)
