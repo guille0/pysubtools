@@ -1,0 +1,11 @@
+README.md
+setup.py
+pysubtools/__init__.py
+pysubtools/formats.py
+pysubtools/sublib.py
+pysubtools.egg-info/PKG-INFO
+pysubtools.egg-info/SOURCES.txt
+pysubtools.egg-info/dependency_links.txt
+pysubtools.egg-info/not-zip-safe
+pysubtools.egg-info/requires.txt
+pysubtools.egg-info/top_level.txt

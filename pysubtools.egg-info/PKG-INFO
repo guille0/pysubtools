@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: pysubtools
+Version: 0.1
+Summary: A library for editing subtitle files.
+Home-page: https://github.com/guille0/pysubtools
+Author: Guillermo Vicente
+Author-email: guillermovicente@protonmail.com
+License: UNKNOWN
+Description: # pysubtools
+        Library and tools for editing subtitles including left-aligning dialogue and moving single lines up.
+Keywords: subtitles ass srt
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Multimedia :: Video
+Description-Content-Type: text/markdown
